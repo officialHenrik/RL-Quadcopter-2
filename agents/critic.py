@@ -1,3 +1,6 @@
+from keras import layers, models, optimizers
+from keras import backend as K
+
 class Critic:
     """Critic (Value) Model."""
 
@@ -13,7 +16,7 @@ class Critic:
         self.action_size = action_size
 
         # Initialize any other variables here
-
+        #print("Initializing Critic model")
         self.build_model()
 
     def build_model(self):

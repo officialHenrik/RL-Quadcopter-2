@@ -1,7 +1,8 @@
 from agents.actor import Actor
 from agents.critic import Critic
 from agents.replay_buffer import ReplayBuffer
-from agents.ou_noice import OUNoise
+from agents.ou_noise import OUNoise
+import numpy as np
 
 class DDPG():
     """Reinforcement Learning agent that learns using DDPG."""
@@ -40,7 +41,12 @@ class DDPG():
         self.gamma = 0.99  # discount factor
         self.tau = 0.01  # for soft update of target parameters
 
+        # Score tracker?
+        self.total_reward = 0
+        
+        
     def reset_episode(self):
+        self.total_reward = 0
         self.noise.reset()
         state = self.task.reset()
         self.last_state = state
@@ -50,6 +56,8 @@ class DDPG():
          # Save experience / reward
         self.memory.add(self.last_state, action, reward, next_state, done)
 
+        self.total_reward += np.sum(reward)
+        
         # Learn, if enough samples are available in memory
         if len(self.memory) > self.batch_size:
             experiences = self.memory.sample()
@@ -72,7 +80,7 @@ class DDPG():
         rewards = np.array([e.reward for e in experiences if e is not None]).astype(np.float32).reshape(-1, 1)
         dones = np.array([e.done for e in experiences if e is not None]).astype(np.uint8).reshape(-1, 1)
         next_states = np.vstack([e.next_state for e in experiences if e is not None])
-
+        
         # Get predicted next-state actions and Q values from target models
         #     Q_targets_next = critic_target(next_state, actor_target(next_state))
         actions_next = self.actor_target.model.predict_on_batch(next_states)
@@ -99,3 +107,4 @@ class DDPG():
 
         new_weights = self.tau * local_weights + (1 - self.tau) * target_weights
         target_model.set_weights(new_weights)
+        
