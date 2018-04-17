@@ -6,30 +6,41 @@ import numpy as np
 
 class DDPG():
     """Reinforcement Learning agent that learns using DDPG."""
-    """        Deep Deterministic Policy Gradients         """
-    def __init__(self, task):
+    """        Deep Determini, stic Policy Gradients         """
+    def __init__(self, task, 
+                 gamma = 0.99, 
+                 tau = 0.01, 
+                 exploration_mu=0, 
+                 exploration_theta=0.15, 
+                 exploration_sigma=0.2,
+                 lr_critic=0.001,
+                 lr_actor =0.0001):
+        
         self.task = task
         self.state_size = task.state_size
         self.action_size = task.action_size
         self.action_low = task.action_low
         self.action_high = task.action_high
 
+        self.lr_critic = lr_critic
+        self.lr_actor  = lr_actor 
+        
         # Actor (Policy) Model
-        self.actor_local = Actor(self.state_size, self.action_size, self.action_low, self.action_high)
-        self.actor_target = Actor(self.state_size, self.action_size, self.action_low, self.action_high)
+        self.actor_local = Actor(self.state_size, self.action_size, self.action_low, self.action_high, self.lr_actor)
+        self.actor_target = Actor(self.state_size, self.action_size, self.action_low, self.action_high, self.lr_actor)
 
         # Critic (Value) Model
-        self.critic_local = Critic(self.state_size, self.action_size)
-        self.critic_target = Critic(self.state_size, self.action_size)
+        self.critic_local = Critic(self.state_size, self.action_size, self.lr_critic)
+        self.critic_target = Critic(self.state_size, self.action_size, self.lr_critic)
 
         # Initialize target model parameters with local model parameters
         self.critic_target.model.set_weights(self.critic_local.model.get_weights())
         self.actor_target.model.set_weights(self.actor_local.model.get_weights())
 
         # Noise process
-        self.exploration_mu = 0
-        self.exploration_theta = 0.15
-        self.exploration_sigma = 0.2
+        self.exploration_mu = exploration_mu #0
+        self.exploration_theta = exploration_theta # 0.15
+        self.exploration_sigma = exploration_sigma # 0.2
         self.noise = OUNoise(self.action_size, self.exploration_mu, self.exploration_theta, self.exploration_sigma)
 
         # Replay memory
@@ -38,8 +49,8 @@ class DDPG():
         self.memory = ReplayBuffer(self.buffer_size, self.batch_size)
 
         # Algorithm parameters
-        self.gamma = 0.99  # discount factor
-        self.tau = 0.01  # for soft update of target parameters
+        self.gamma = gamma  # discount factor
+        self.tau = tau #0.01 # for soft update of target parameters
 
         # Score tracker?
         self.total_reward = 0
@@ -70,7 +81,10 @@ class DDPG():
         """Returns actions for given state(s) as per current policy."""
         state = np.reshape(state, [-1, self.state_size])
         action = self.actor_local.model.predict(state)[0]
-        return list(action + self.noise.sample())  # add some noise for exploration
+        actions = list(action + self.noise.sample())  # add some noise for exploration
+        actions = np.maximum(actions, self.action_low)
+        actions = np.minimum(actions, self.action_high)
+        return actions
 
     def learn(self, experiences):
         """Update policy and value parameters using given batch of experience tuples."""
@@ -93,7 +107,7 @@ class DDPG():
         # Train actor model (local)
         action_gradients = np.reshape(self.critic_local.get_action_gradients([states, actions, 0]), (-1, self.action_size))
         self.actor_local.train_fn([states, action_gradients, 1])  # custom training function
-
+        
         # Soft-update target models
         self.soft_update(self.critic_local.model, self.critic_target.model)
         self.soft_update(self.actor_local.model, self.actor_target.model)   

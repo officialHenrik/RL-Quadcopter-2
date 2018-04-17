@@ -1,10 +1,11 @@
 from keras import layers, models, optimizers
 from keras import backend as K
+#from keras.layers.normalization import BatchNormalization
 
 class Actor:
     """Actor (Policy) Model."""
 
-    def __init__(self, state_size, action_size, action_low, action_high):
+    def __init__(self, state_size, action_size, action_low, action_high, lr=0.001):
         """Initialize parameters and build model.
 
         Params
@@ -21,7 +22,8 @@ class Actor:
         self.action_range = self.action_high - self.action_low
 
         # Initialize any other variables here
-
+        self.lr = lr
+        
         self.build_model()
 
     def build_model(self):
@@ -31,10 +33,13 @@ class Actor:
 
         # Add hidden layers
         net = layers.Dense(units=32, activation='relu')(states)
+        net = layers.normalization.BatchNormalization()(net)
         net = layers.Dense(units=64, activation='relu')(net)
+        #net = layers.normalization.BatchNormalization()(net)
         net = layers.Dense(units=32, activation='relu')(net)
 
         # Try different layer sizes, activations, add batch normalization, regularizers, etc.
+
 
         # Add final output layer with sigmoid activation
         raw_actions = layers.Dense(units=self.action_size, activation='sigmoid',
@@ -54,7 +59,7 @@ class Actor:
         # Incorporate any additional losses here (e.g. from regularizers)
 
         # Define optimizer and training function
-        optimizer = optimizers.Adam()
+        optimizer = optimizers.Adam(lr=self.lr)
         updates_op = optimizer.get_updates(params=self.model.trainable_weights, loss=loss)
         self.train_fn = K.function(
             inputs=[self.model.input, action_gradients, K.learning_phase()],
