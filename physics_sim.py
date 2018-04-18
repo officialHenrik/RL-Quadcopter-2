@@ -24,7 +24,7 @@ def body_to_earth_frame(ii, jj, kk):
 
 
 class PhysicsSim():
-    def __init__(self, init_pose=None, init_velocities=None, init_angle_velocities=None, runtime=5.):
+    def __init__(self, init_pose=None, init_velocities=None, init_angle_velocities=None, runtime=50.):
         self.init_pose = init_pose
         self.init_velocities = init_velocities
         self.init_angle_velocities = init_angle_velocities
@@ -111,7 +111,9 @@ class PhysicsSim():
             V = self.prop_wind_speed[prop_number]
             D = self.propeller_size
             n = rotor_speeds[prop_number]
-            J = V / n * D
+            J = 0
+            if n > 0:
+                J = V / (n * D)
             # From http://m-selig.ae.illinois.edu/pubs/BrandtSelig-2011-AIAA-2011-1255-LRN-Propellers.pdf
             C_T = max(.12 - .07*max(0, J)-.1*max(0, J)**2, 0)
             thrusts.append(C_T * self.rho * n**2 * D**4)
