@@ -21,7 +21,7 @@ class DDPG():
         self.action_size = task.action_size
         self.action_low = task.action_low
         self.action_high = task.action_high
-
+        
         self.lr_critic = lr_critic
         self.lr_actor  = lr_actor 
         
@@ -82,6 +82,7 @@ class DDPG():
         state = np.reshape(state, [-1, self.state_size])
         action = self.actor_local.model.predict(state)[0]
         actions = list(action + self.noise.sample())  # add some noise for exploration
+        #actions = list(action)  # no noise for exploration
         actions = np.maximum(actions, self.action_low)
         actions = np.minimum(actions, self.action_high)
         return actions

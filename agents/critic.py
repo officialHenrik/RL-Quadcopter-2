@@ -1,4 +1,4 @@
-from keras import layers, models, optimizers
+from keras import layers, models, optimizers, regularizers
 from keras import backend as K
 
 class Critic:
@@ -15,7 +15,9 @@ class Critic:
         self.state_size = state_size
         self.action_size = action_size
         self.lr = lr
-
+        self.dropout_rate =0.3
+        self.batch_norm = True
+        
         # Initialize any other variables here
         #print("Initializing Critic model")
         self.build_model()
@@ -26,15 +28,42 @@ class Critic:
         states = layers.Input(shape=(self.state_size,), name='states')
         actions = layers.Input(shape=(self.action_size,), name='actions')
 
+        if 0:
+            # Add hidden layer(s) for state pathway
+            net_states = layers.Dense(units=32, activation='relu')(states)
+            #net_states = layers.normalization.BatchNormalization()(net_states)
+            net_states = layers.Dense(units=64, activation='relu')(net_states)
+            net_states = layers.normalization.BatchNormalization()(net_states)
+
+            # Add hidden layer(s) for action pathway
+            net_actions = layers.Dense(units=32, activation='relu')(actions)
+            #net_actions = layers.normalization.BatchNormalization()(net_actions)
+            net_actions = layers.Dense(units=64, activation='relu')(net_actions)
+            net_actions = layers.normalization.BatchNormalization()(net_actions)
+
         # Add hidden layer(s) for state pathway
-        net_states = layers.Dense(units=32, activation='relu')(states)
-        net_states = layers.normalization.BatchNormalization()(net_states)
-        net_states = layers.Dense(units=64, activation='relu')(net_states)
+        net_states = layers.Dense(32, kernel_initializer='uniform', 
+                                  activation='relu', kernel_regularizer=regularizers.l2(0.01))(states)
+        net_states = layers.Dropout(self.dropout_rate)(net_states)
+        if self.batch_norm:
+            net_states = layers.BatchNormalization()(net_states)
+        net_states = layers.Dense(units=64, kernel_initializer='uniform', 
+                                  activation='relu', kernel_regularizer=regularizers.l2(0.01))(net_states)
+        net_states = layers.Dropout(self.dropout_rate)(net_states)
+        #if self.batch_norm:
+            #net_states = layers.BatchNormalization()(net_states)
 
         # Add hidden layer(s) for action pathway
-        net_actions = layers.Dense(units=32, activation='relu')(actions)
-        net_actions = layers.normalization.BatchNormalization()(net_actions)
-        net_actions = layers.Dense(units=64, activation='relu')(net_actions)
+        net_actions = layers.Dense(units=32, kernel_initializer='uniform', 
+                                   activation='relu', kernel_regularizer=regularizers.l2(0.01))(actions)
+        net_actions = layers.Dropout(self.dropout_rate)(net_actions)
+        if self.batch_norm:
+            net_actions = layers.BatchNormalization()(net_actions)
+        net_actions = layers.Dense(units=64, kernel_initializer='uniform', 
+                                   activation='relu', kernel_regularizer=regularizers.l2(0.01))(net_actions)
+        net_actions = layers.Dropout(self.dropout_rate)(net_actions)
+        #if self.batch_norm:
+            #net_actions = layers.BatchNormalization()(net_actions)
 
         # Try different layer sizes, activations, add batch normalization, regularizers, etc.
 

@@ -1,4 +1,4 @@
-from keras import layers, models, optimizers
+from keras import layers, models, optimizers, regularizers
 from keras import backend as K
 #from keras.layers.normalization import BatchNormalization
 
@@ -23,7 +23,8 @@ class Actor:
 
         # Initialize any other variables here
         self.lr = lr
-        
+        self.batch_norm = True
+        self.dropout_rate = 0.3
         self.build_model()
 
     def build_model(self):
@@ -31,12 +32,31 @@ class Actor:
         # Define input layer (states)
         states = layers.Input(shape=(self.state_size,), name='states')
 
+        if 0:
+            # Add hidden layers
+            net = layers.Dense(units=32, activation='relu')(states)
+            #net = layers.normalization.BatchNormalization()(net)
+            net = layers.Dense(units=64, activation='relu')(net)
+            #net = layers.normalization.BatchNormalization()(net)
+            net = layers.Dense(units=32, activation='relu')(net)
+            net = layers.normalization.BatchNormalization()(net)
+
         # Add hidden layers
-        net = layers.Dense(units=32, activation='relu')(states)
-        net = layers.normalization.BatchNormalization()(net)
-        net = layers.Dense(units=64, activation='relu')(net)
-        #net = layers.normalization.BatchNormalization()(net)
-        net = layers.Dense(units=32, activation='relu')(net)
+        net = layers.Dense(units=32, kernel_initializer='uniform', 
+                           activation='relu', kernel_regularizer=regularizers.l2(0.01))(states)
+        net = layers.Dropout(self.dropout_rate)(net)
+        if self.batch_norm:
+            net = layers.BatchNormalization()(net)
+        net = layers.Dense(units=64, kernel_initializer='uniform', 
+                           activation='relu', kernel_regularizer=regularizers.l2(0.01))(net)
+        net = layers.Dropout(self.dropout_rate)(net)
+        #if self.batch_norm:
+            #net = layers.BatchNormalization()(net)
+        net = layers.Dense(units=32, kernel_initializer='uniform', 
+                           activation='relu', kernel_regularizer=regularizers.l2(0.01))(net)
+        net = layers.Dropout(self.dropout_rate)(net)
+        #if self.batch_norm:
+            #net = layers.BatchNormalization()(net)
 
         # Try different layer sizes, activations, add batch normalization, regularizers, etc.
 
