@@ -19,8 +19,8 @@ class Task():
         self.action_repeat = 3
 
         self.state_size = self.action_repeat * len(self.sim.pose)
-        self.action_low = 300
-        self.action_high = 500
+        self.action_low = 0 # 350
+        self.action_high = 900 #550
         self.nof_rotors = 4
         self.action_size = action_size
         self.runtime = runtime
@@ -30,7 +30,34 @@ class Task():
         
     def get_reward(self):
         """Uses current pose of sim to return reward."""
-       
+        
+        norm= np.linalg.norm([self.sim.pose[:3] - self.target_pos])
+        #reward = -min(norm**2, 100)
+        reward = -norm
+        if self.sim.pose[2] < self.target_pos[2]*0.5:
+            reward -= 3*norm
+            
+        if norm < 3:
+            reward += (1.-norm)*10
+            
+        #reward = -min(abs(self.target_pos[2] - self.sim.pose[2]), 20.0)
+        if self.sim.pose[2] >= self.target_pos[2]-1.: reward+= 25
+        if self.sim.pose[2] >= self.target_pos[2]+1.: reward-= 25
+        #if self.sim.pose[2] <= 0.1: reward-= 1000
+        #if abs(self.sim.v[0]) < 0.2: reward+= 10
+        #if abs(self.sim.v[1]) < 0.2: reward+= 10
+        if abs(self.sim.v[2]) < 0.2: reward+= abs(self.sim.v[2])*10
+        reward-= abs(self.sim.v[0])**2
+        reward-= abs(self.sim.v[1])**2
+        reward-= abs(self.sim.v[2])**2
+        #if abs(self.sim.angular_v[0]) < 0.2: reward+= 10
+        #if abs(self.sim.angular_v[1]) < 0.2: reward+= 10
+        #if abs(self.sim.angular_v[2]) < 0.2: reward+= 10
+        #reward += self.sim.time*50
+        #if self.sim.time >= self.runtime:
+        #    reward +=5000
+        return reward
+    
         ######################
         reward=0
         penalty = 0
@@ -47,15 +74,14 @@ class Task():
         z_distance = abs(self.sim.pose[2] - self.target_pos[2])
         
         # Penalties
-        penalty = 10*z_distance**2                      # vertical distance from target
-        penalty += distance                      # distance from target
+        reward = 1.-.3*(abs(self.sim.pose[:3] - self.target_pos)).sum()                      # vertical distance from target
+        #penalty += distance                      # distance from target
         #penalty += abs(self.sim.pose[3:6]).sum()   # euler angles
         
-        z_speed_penalty_gain = ((100-z_distance)/10)*10.0
-            
-        penalty += z_speed_penalty_gain*abs(self.sim.v).sum()           # velocities
+        z_speed_penalty_gain = (100-z_distance)/100  
+        penalty += z_speed_penalty_gain*abs(self.sim.v).sum()**2           # velocities
         penalty += 0.03*abs(self.sim.angular_v).sum()   # euler angle velocities
-                    
+        penalyt = max(penalty,0)
         #if distance < 5:
         #    reward += 100
         #    if self.sim.time >= self.runtime:
@@ -63,10 +89,6 @@ class Task():
         
         #reward = self.sim.time*100
         reward -= penalty
-        #reward = np.maximum(reward, -6000.0)
-        #print(reward)
-        #reward = np.maximum(reward, -100.0)
-        #reward = np.minimum(reward, +100.0)
         return reward
 
     def step(self, rotor_speeds):
@@ -82,6 +104,11 @@ class Task():
             reward += self.get_reward() 
             pose_all.append(self.sim.pose)
         
+        if self.sim.pose[2] > 20:
+            done = True
+
+        if self.sim.time >= self.runtime:
+            done = True
         next_state = np.concatenate(pose_all)
         return next_state, reward, done
 

@@ -19,8 +19,8 @@ class Task():
         self.action_repeat = 3
 
         self.state_size = self.action_repeat * len(self.sim.pose)
-        self.action_low = 300
-        self.action_high = 500
+        self.action_low = 0
+        self.action_high = 900
         self.nof_rotors = 4
         self.action_size = action_size
         self.runtime = runtime

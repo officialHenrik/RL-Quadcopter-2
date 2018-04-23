@@ -32,29 +32,34 @@ class Actor:
         # Define input layer (states)
         states = layers.Input(shape=(self.state_size,), name='states')
 
-        if 0:
+        #if 0:
             # Add hidden layers
-            net = layers.Dense(units=32, activation='relu')(states)
+            #net = layers.Dense(units=32, activation='relu')(states)
             #net = layers.normalization.BatchNormalization()(net)
-            net = layers.Dense(units=64, activation='relu')(net)
+            #net = layers.Dense(units=64, activation='relu')(net)
             #net = layers.normalization.BatchNormalization()(net)
-            net = layers.Dense(units=32, activation='relu')(net)
-            net = layers.normalization.BatchNormalization()(net)
+            #net = layers.Dense(units=32, activation='relu')(net)
+            #net = layers.normalization.BatchNormalization()(net)
 
+        net = layers.Dense(units=32, kernel_initializer='uniform', activation='relu', kernel_regularizer=regularizers.l2(0.01))(states)
+        net = layers.BatchNormalization()(net)
+        net = layers.Dense(units=64, kernel_initializer='uniform', activation='relu', kernel_regularizer=regularizers.l2(0.01))(net)
+        net = layers.Dense(units=32, kernel_initializer='uniform', activation='relu', kernel_regularizer=regularizers.l2(0.01))(net)
+        
         # Add hidden layers
-        net = layers.Dense(units=32, kernel_initializer='uniform', 
-                           activation='relu', kernel_regularizer=regularizers.l2(0.01))(states)
-        net = layers.Dropout(self.dropout_rate)(net)
-        if self.batch_norm:
-            net = layers.BatchNormalization()(net)
-        net = layers.Dense(units=64, kernel_initializer='uniform', 
-                           activation='relu', kernel_regularizer=regularizers.l2(0.01))(net)
-        net = layers.Dropout(self.dropout_rate)(net)
+        #net = layers.Dense(units=32, kernel_initializer='uniform', 
+        #                   activation='relu', kernel_regularizer=regularizers.l2(0.01))(states)
+        #net = layers.Dropout(self.dropout_rate)(net)
+        #if self.batch_norm:
+        #    net = layers.BatchNormalization()(net)
+        #net = layers.Dense(units=64, kernel_initializer='uniform', 
+        #                   activation='relu', kernel_regularizer=regularizers.l2(0.01))(net)
+        #net = layers.Dropout(self.dropout_rate)(net)
         #if self.batch_norm:
             #net = layers.BatchNormalization()(net)
-        net = layers.Dense(units=32, kernel_initializer='uniform', 
-                           activation='relu', kernel_regularizer=regularizers.l2(0.01))(net)
-        net = layers.Dropout(self.dropout_rate)(net)
+        #net = layers.Dense(units=32, kernel_initializer='uniform', 
+        #                   activation='relu', kernel_regularizer=regularizers.l2(0.01))(net)
+        #net = layers.Dropout(self.dropout_rate)(net)
         #if self.batch_norm:
             #net = layers.BatchNormalization()(net)
 

@@ -28,11 +28,14 @@ class DDPG():
         # Actor (Policy) Model
         self.actor_local = Actor(self.state_size, self.action_size, self.action_low, self.action_high, self.lr_actor)
         self.actor_target = Actor(self.state_size, self.action_size, self.action_low, self.action_high, self.lr_actor)
+        self.actor_best = Actor(self.state_size, self.action_size, self.action_low, self.action_high, self.lr_actor)
 
         # Critic (Value) Model
         self.critic_local = Critic(self.state_size, self.action_size, self.lr_critic)
         self.critic_target = Critic(self.state_size, self.action_size, self.lr_critic)
 
+        self.actor_best_score = -np.inf
+        
         # Initialize target model parameters with local model parameters
         self.critic_target.model.set_weights(self.critic_local.model.get_weights())
         self.actor_target.model.set_weights(self.actor_local.model.get_weights())
@@ -45,7 +48,7 @@ class DDPG():
 
         # Replay memory
         self.buffer_size = 100000
-        self.batch_size = 64
+        self.batch_size = 128
         self.memory = ReplayBuffer(self.buffer_size, self.batch_size)
 
         # Algorithm parameters
@@ -53,10 +56,17 @@ class DDPG():
         self.tau = tau #0.01 # for soft update of target parameters
 
         # Score tracker?
-        self.total_reward = 0
+        self.total_reward = -np.inf
         
+    def check_reward(self):
+        
+        if self.total_reward > self.actor_best_score:
+            self.actor_best_score = self.total_reward
+            self.soft_update(self.actor_target.model, self.actor_best.model, 1)
+            print(self.actor_best_score)
         
     def reset_episode(self):
+        
         self.total_reward = 0
         self.noise.reset()
         state = self.task.reset()
@@ -73,7 +83,7 @@ class DDPG():
         if len(self.memory) > self.batch_size:
             experiences = self.memory.sample()
             self.learn(experiences)
-
+             
         # Roll over last state and action
         self.last_state = next_state
 
@@ -86,7 +96,23 @@ class DDPG():
         actions = np.maximum(actions, self.action_low)
         actions = np.minimum(actions, self.action_high)
         return actions
-
+    
+    def act_target(self, state):
+        """Returns actions for given state(s) as per current policy."""
+        state = np.reshape(state, [-1, self.state_size])
+        action = self.actor_target.model.predict(state)[0]
+        #actions = list(action + self.noise.sample())  # add some noise for exploration
+        actions = list(action)  # no noise for exploration
+        return actions
+    
+    def act_best(self, state):
+        """Returns actions for given state(s) as per current policy."""
+        state = np.reshape(state, [-1, self.state_size])
+        action = self.actor_best.model.predict(state)[0]
+        #actions = list(action + self.noise.sample())  # add some noise for exploration
+        actions = list(action)  # no noise for exploration
+        return actions
+    
     def learn(self, experiences):
         """Update policy and value parameters using given batch of experience tuples."""
         # Convert experience tuples to separate arrays for each element (states, actions, rewards, etc.)
@@ -110,16 +136,16 @@ class DDPG():
         self.actor_local.train_fn([states, action_gradients, 1])  # custom training function
         
         # Soft-update target models
-        self.soft_update(self.critic_local.model, self.critic_target.model)
-        self.soft_update(self.actor_local.model, self.actor_target.model)   
-
-    def soft_update(self, local_model, target_model):
+        self.soft_update(self.critic_local.model, self.critic_target.model, self.tau)
+        self.soft_update(self.actor_local.model, self.actor_target.model, self.tau) 
+           
+    def soft_update(self, local_model, target_model, tau):
         """Soft update model parameters."""
         local_weights = np.array(local_model.get_weights())
         target_weights = np.array(target_model.get_weights())
 
         assert len(local_weights) == len(target_weights), "Local and target model parameters must have the same size"
 
-        new_weights = self.tau * local_weights + (1 - self.tau) * target_weights
+        new_weights = tau * local_weights + (1 - tau) * target_weights
         target_model.set_weights(new_weights)
         
