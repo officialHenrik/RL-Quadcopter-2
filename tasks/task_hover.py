@@ -14,7 +14,7 @@ class Task():
             runtime: time limit for each episode
             target_pos: target/goal (x,y,z) position for the agent
         """
-        # Simulation
+        # Simulation 
         self.sim = PhysicsSim(init_pose, init_velocities, init_angle_velocities, runtime) 
         self.action_repeat = 3
 
@@ -32,13 +32,19 @@ class Task():
         """Uses current pose of sim to return reward."""
         
         norm= np.linalg.norm([self.sim.pose[:3] - self.target_pos])
+        z_norm= np.linalg.norm([self.sim.pose[2] - self.target_pos[2]])
+        #reward = np.tanh(1 - 0.004*(norm))
+        #return reward
+    
         #reward = -min(norm**2, 100)
-        reward = -norm
-        if self.sim.pose[2] < self.target_pos[2]*0.5:
-            reward -= 3*norm
+        reward = -min(norm, 50)*0.07
+        reward = -min(norm, 50)*0.7
             
-        if norm < 3:
-            reward += (1.-norm)*10
+        #if self.sim.pose[2] < self.target_pos[2]*0.5:
+        #    reward -= 3*norm
+            
+        #if norm < 3:
+        #    reward += (1.-norm)*10
             
         #reward = -min(abs(self.target_pos[2] - self.sim.pose[2]), 20.0)
         if self.sim.pose[2] >= self.target_pos[2]-1.: reward+= 25
@@ -46,16 +52,20 @@ class Task():
         #if self.sim.pose[2] <= 0.1: reward-= 1000
         #if abs(self.sim.v[0]) < 0.2: reward+= 10
         #if abs(self.sim.v[1]) < 0.2: reward+= 10
-        if abs(self.sim.v[2]) < 0.2: reward+= abs(self.sim.v[2])*10
-        reward-= abs(self.sim.v[0])**2
-        reward-= abs(self.sim.v[1])**2
-        reward-= abs(self.sim.v[2])**2
+        #if abs(self.sim.v[2]) < 0.2: reward+= abs(self.sim.v[2])*10
+        #reward-= 0.05*abs(self.sim.v[0])**2
+        #reward-= 0.05*abs(self.sim.v[1])**2
+        #reward-= 0.05*abs(self.sim.v[2])**2
+        #reward-= 0.05*abs(self.sim.angular_v[0])**2
+        #reward-= 0.05*abs(self.sim.angular_v[1])**2
+        #reward-= 0.05*abs(self.sim.angular_v[2])**2
         #if abs(self.sim.angular_v[0]) < 0.2: reward+= 10
         #if abs(self.sim.angular_v[1]) < 0.2: reward+= 10
         #if abs(self.sim.angular_v[2]) < 0.2: reward+= 10
         #reward += self.sim.time*50
         #if self.sim.time >= self.runtime:
         #    reward +=5000
+        #reward = np.tanh(0.01*(reward))
         return reward
     
         ######################
