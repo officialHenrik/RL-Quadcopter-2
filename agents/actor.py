@@ -1,4 +1,4 @@
-from keras import layers, models, optimizers, regularizers
+from keras import layers, models, optimizers, regularizers, initializers
 from keras import backend as K
 #from keras.layers.normalization import BatchNormalization
 
@@ -41,12 +41,24 @@ class Actor:
             #net = layers.Dense(units=32, activation='relu')(net)
             #net = layers.normalization.BatchNormalization()(net)
 
-        net = layers.Dense(units=32, kernel_initializer='uniform', activation='relu', kernel_regularizer=regularizers.l2(0.01))(states)
+        net = layers.Dense(units=32, 
+                           kernel_initializer='random_uniform', 
+                           bias_initializer='random_uniform', 
+                           activation='relu', 
+                           kernel_regularizer=regularizers.l2(0.01))(states)
         net = layers.BatchNormalization()(net)
-        net = layers.Dense(units=64, kernel_initializer='uniform', activation='relu', kernel_regularizer=regularizers.l2(0.01))(net)
-        net = layers.BatchNormalization()(net)
-        net = layers.Dense(units=32, kernel_initializer='uniform', activation='relu', kernel_regularizer=regularizers.l2(0.01))(net)
-        net = layers.BatchNormalization()(net)
+        net = layers.Dense(units=64, 
+                           kernel_initializer='random_uniform', 
+                           bias_initializer='random_uniform', 
+                           activation='relu', 
+                           kernel_regularizer=regularizers.l2(0.01))(net)
+        #net = layers.BatchNormalization()(net)
+        net = layers.Dense(units=32, 
+                           kernel_initializer='random_uniform', 
+                           bias_initializer=initializers.Constant(value=0.5), #'random_uniform', 
+                           activation='relu', 
+                           kernel_regularizer=regularizers.l2(0.01))(net)
+        #net = layers.BatchNormalization()(net)
         
         # Add hidden layers
         #net = layers.Dense(units=32, kernel_initializer='uniform', 
@@ -86,7 +98,14 @@ class Actor:
         # Incorporate any additional losses here (e.g. from regularizers)
 
         # Define optimizer and training function
-        optimizer = optimizers.Adam(lr=self.lr)
+        optimizer = optimizers.Adam(lr=self.lr, 
+                                    beta_1=0.9, 
+                                    beta_2=0.999, 
+                                    epsilon=None, 
+                                    decay=1e-6, 
+                                    amsgrad=True)
+        #optimizer = optimizers.SGD(lr=self.lr, decay=1e-6, momentum=0.9, nesterov=True)
+
         updates_op = optimizer.get_updates(params=self.model.trainable_weights, loss=loss)
         self.train_fn = K.function(
             inputs=[self.model.input, action_gradients, K.learning_phase()],

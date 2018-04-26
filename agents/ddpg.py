@@ -47,7 +47,7 @@ class DDPG():
         self.noise = OUNoise(self.action_size, self.exploration_mu, self.exploration_theta, self.exploration_sigma)
 
         # Replay memory
-        self.buffer_size = 100000
+        self.buffer_size = 1000000
         self.batch_size = 64
         self.memory = ReplayBuffer(self.buffer_size, self.batch_size)
 
@@ -65,16 +65,16 @@ class DDPG():
             self.soft_update(self.actor_target.model, self.actor_best.model, 1)
             print(self.actor_best_score)
         
-    def reset_episode(self):
+    def reset_episode(self, new_runtime=5.):
         
         self.total_reward = 0
         self.noise.reset()
-        state = self.task.reset()
+        state = self.task.reset(new_runtime)
         self.last_state = state
         return state
 
     def step(self, action, reward, next_state, done):
-         # Save experience / reward
+         # Save experience / reward               
         self.memory.add(self.last_state, action, reward, next_state, done)
 
         self.total_reward += np.sum(reward)

@@ -24,10 +24,10 @@ class Task():
         self.nof_rotors = 4
         self.action_size = action_size
         self.runtime = runtime
-
+        
         # Goal
         self.target_pos = target_pos if target_pos is not None else np.array([0., 0., 10.]) 
-        
+                
     def get_reward(self):
         """Uses current pose of sim to return reward."""
         
@@ -37,68 +37,18 @@ class Task():
         #return reward
     
         #reward = -min(norm**2, 100)
-        reward = -min(norm, 50)*0.07
-        reward = -min(norm, 50)*0.7
+        reward = -(min(norm, 20)/20)*0.2
+        reward -= min(z_norm, 20)/20
             
-        #if self.sim.pose[2] < self.target_pos[2]*0.5:
-        #    reward -= 3*norm
-            
-        #if norm < 3:
-        #    reward += (1.-norm)*10
-            
-        #reward = -min(abs(self.target_pos[2] - self.sim.pose[2]), 20.0)
-        if self.sim.pose[2] >= self.target_pos[2]-1.: reward+= 25
-        if self.sim.pose[2] >= self.target_pos[2]+1.: reward-= 25
-        #if self.sim.pose[2] <= 0.1: reward-= 1000
-        #if abs(self.sim.v[0]) < 0.2: reward+= 10
-        #if abs(self.sim.v[1]) < 0.2: reward+= 10
-        #if abs(self.sim.v[2]) < 0.2: reward+= abs(self.sim.v[2])*10
-        #reward-= 0.05*abs(self.sim.v[0])**2
-        #reward-= 0.05*abs(self.sim.v[1])**2
-        #reward-= 0.05*abs(self.sim.v[2])**2
-        #reward-= 0.05*abs(self.sim.angular_v[0])**2
-        #reward-= 0.05*abs(self.sim.angular_v[1])**2
-        #reward-= 0.05*abs(self.sim.angular_v[2])**2
-        #if abs(self.sim.angular_v[0]) < 0.2: reward+= 10
-        #if abs(self.sim.angular_v[1]) < 0.2: reward+= 10
-        #if abs(self.sim.angular_v[2]) < 0.2: reward+= 10
-        #reward += self.sim.time*50
-        #if self.sim.time >= self.runtime:
-        #    reward +=5000
+        reward -= (min(abs(self.sim.v[0]),20)/20)*0.2
+        reward -= (min(abs(self.sim.v[1]),20)/20)*0.2
+        reward -= (min(abs(self.sim.v[2]),20)/20)*0.2
+        
+        reward -= (min(abs(self.sim.angular_v[0]),20)/20)*0.2
+        reward -= (min(abs(self.sim.angular_v[1]),20)/20)*0.2
+        reward -= (min(abs(self.sim.angular_v[2]),20)/20)*0.2
+        
         #reward = np.tanh(0.01*(reward))
-        return reward
-    
-        ######################
-        reward=0
-        penalty = 0
-        
-        state = self.sim.pose
-        vel = self.sim.v
-        goal = self.target_pos
-        pos = state[:3]
-        ang  = state[4:6]
-        angv  = state[7:9]
-        reward = 0
-        
-        distance = np.linalg.norm(goal-pos)
-        z_distance = abs(self.sim.pose[2] - self.target_pos[2])
-        
-        # Penalties
-        reward = 1.-.3*(abs(self.sim.pose[:3] - self.target_pos)).sum()                      # vertical distance from target
-        #penalty += distance                      # distance from target
-        #penalty += abs(self.sim.pose[3:6]).sum()   # euler angles
-        
-        z_speed_penalty_gain = (100-z_distance)/100  
-        penalty += z_speed_penalty_gain*abs(self.sim.v).sum()**2           # velocities
-        penalty += 0.03*abs(self.sim.angular_v).sum()   # euler angle velocities
-        penalyt = max(penalty,0)
-        #if distance < 5:
-        #    reward += 100
-        #    if self.sim.time >= self.runtime:
-        #        reward +=100
-        
-        #reward = self.sim.time*100
-        reward -= penalty
         return reward
 
     def step(self, rotor_speeds):
@@ -111,19 +61,29 @@ class Task():
         
         for _ in range(self.action_repeat):
             done = self.sim.next_timestep(rotor_speeds) # update the sim pose and velocities
-            reward += self.get_reward() 
-            pose_all.append(self.sim.pose)
+            reward += self.get_reward()
+            pose = self.sim.pose[:]*1.
+            pose[:3] -= self.target_pos
+            #pose[:3] /= self.target_pos[2]
+            pose_all.append(pose)
         
-        if self.sim.pose[2] > 20:
+        if self.sim.pose[2] > self.target_pos[2]*2:
             done = True
 
         if self.sim.time >= self.runtime:
             done = True
+            
         next_state = np.concatenate(pose_all)
         return next_state, reward, done
 
-    def reset(self):
+    def reset(self, runtime=5.):
         """Reset the sim to start a new episode."""
-        self.sim.reset()
-        state = np.concatenate([self.sim.pose] * self.action_repeat) 
+        self.runtime = runtime
+        self.sim.reset(self.runtime)
+                
+        reset_pose = self.sim.pose[:]*1.
+        reset_pose[:3] -= self.target_pos
+        #reset_pose[:3] /= self.target_pos[2]*2.
+        state = np.concatenate([reset_pose] * self.action_repeat) 
+        
         return state
