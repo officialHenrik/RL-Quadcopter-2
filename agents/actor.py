@@ -5,7 +5,7 @@ from keras import backend as K
 class Actor:
     """Actor (Policy) Model."""
 
-    def __init__(self, state_size, action_size, action_low, action_high, lr=0.001):
+    def __init__(self, state_size, action_size, action_low, action_high, lr=0.001, lr_decay=1e-9):
         """Initialize parameters and build model.
 
         Params
@@ -23,8 +23,7 @@ class Actor:
 
         # Initialize any other variables here
         self.lr = lr
-        self.batch_norm = True
-        self.dropout_rate = 0.3
+        self.lr_decay = lr_decay
         self.build_model()
 
     def build_model(self):
@@ -32,62 +31,34 @@ class Actor:
         # Define input layer (states)
         states = layers.Input(shape=(self.state_size,), name='states')
 
-        #if 0:
-            # Add hidden layers
-            #net = layers.Dense(units=32, activation='relu')(states)
-            #net = layers.normalization.BatchNormalization()(net)
-            #net = layers.Dense(units=64, activation='relu')(net)
-            #net = layers.normalization.BatchNormalization()(net)
-            #net = layers.Dense(units=32, activation='relu')(net)
-            #net = layers.normalization.BatchNormalization()(net)
-
-        net = layers.Dense(units=32, 
+        net = layers.Dense(units=128, 
                            kernel_initializer='random_uniform', 
-                           bias_initializer='random_uniform', 
+                           bias_initializer='random_uniform', #initializers.Constant(value=0.5),
                            activation='relu', 
                            kernel_regularizer=regularizers.l2(0.01))(states)
         net = layers.BatchNormalization()(net)
-        net = layers.Dense(units=64, 
+        net = layers.Dense(units=256, 
                            kernel_initializer='random_uniform', 
-                           bias_initializer='random_uniform', 
+                           bias_initializer='random_uniform', #initializers.Constant(value=0.5),
                            activation='relu', 
                            kernel_regularizer=regularizers.l2(0.01))(net)
-        #net = layers.BatchNormalization()(net)
-        net = layers.Dense(units=32, 
+        net = layers.BatchNormalization()(net)
+        net = layers.Dense(units=128, 
                            kernel_initializer='random_uniform', 
-                           bias_initializer=initializers.Constant(value=0.5), #'random_uniform', 
+                           bias_initializer='random_uniform', #initializers.Constant(value=0.5),
                            activation='relu', 
                            kernel_regularizer=regularizers.l2(0.01))(net)
-        #net = layers.BatchNormalization()(net)
+        net = layers.BatchNormalization()(net)
         
-        # Add hidden layers
-        #net = layers.Dense(units=32, kernel_initializer='uniform', 
-        #                   activation='relu', kernel_regularizer=regularizers.l2(0.01))(states)
-        #net = layers.Dropout(self.dropout_rate)(net)
-        #if self.batch_norm:
-        #    net = layers.BatchNormalization()(net)
-        #net = layers.Dense(units=64, kernel_initializer='uniform', 
-        #                   activation='relu', kernel_regularizer=regularizers.l2(0.01))(net)
-        #net = layers.Dropout(self.dropout_rate)(net)
-        #if self.batch_norm:
-            #net = layers.BatchNormalization()(net)
-        #net = layers.Dense(units=32, kernel_initializer='uniform', 
-        #                   activation='relu', kernel_regularizer=regularizers.l2(0.01))(net)
-        #net = layers.Dropout(self.dropout_rate)(net)
-        #if self.batch_norm:
-            #net = layers.BatchNormalization()(net)
-
-        # Try different layer sizes, activations, add batch normalization, regularizers, etc.
-
-
         # Add final output layer with sigmoid activation
-        raw_actions = layers.Dense(units=self.action_size, activation='sigmoid',
-            name='raw_actions')(net)
+        raw_actions = layers.Dense(units=self.action_size, 
+                                   activation='sigmoid',
+                                   name='raw_actions')(net)
 
         # Scale [0, 1] output for each action dimension to proper range
         actions = layers.Lambda(lambda x: (x * self.action_range) + self.action_low,
-            name='actions')(raw_actions)
-
+                                name='actions')(raw_actions)
+        
         # Create Keras model
         self.model = models.Model(inputs=states, outputs=actions)
 
@@ -102,12 +73,12 @@ class Actor:
                                     beta_1=0.9, 
                                     beta_2=0.999, 
                                     epsilon=None, 
-                                    decay=1e-6, 
-                                    amsgrad=True)
+                                    decay=self.lr_decay, 
+                                    amsgrad=False)
         #optimizer = optimizers.SGD(lr=self.lr, decay=1e-6, momentum=0.9, nesterov=True)
 
         updates_op = optimizer.get_updates(params=self.model.trainable_weights, loss=loss)
         self.train_fn = K.function(
             inputs=[self.model.input, action_gradients, K.learning_phase()],
-            outputs=[],
+            outputs=[loss],
             updates=updates_op)

@@ -57,13 +57,17 @@ class DDPG():
 
         # Score tracker?
         self.total_reward = -np.inf
+        self.loss = 0
         
-    def check_reward(self):
+        print("Actor model:")
+        self.actor_target.model.summary()
+        print("Critic model:")
+        self.critic_target.model.summary()
         
-        if self.total_reward > self.actor_best_score:
-            self.actor_best_score = self.total_reward
+    def save_actor(self, mean_reward):
+        if self.actor_best_score < mean_reward:
+            self.actor_best_score = mean_reward
             self.soft_update(self.actor_target.model, self.actor_best.model, 1)
-            print(self.actor_best_score)
         
     def reset_episode(self, new_runtime=5.):
         
@@ -105,6 +109,15 @@ class DDPG():
         actions = list(action)  # no noise for exploration
         return actions
     
+    def act_best_explore(self, state):
+        """Returns actions for given state(s) as per current policy."""
+        state = np.reshape(state, [-1, self.state_size])
+        action = self.actor_best.model.predict(state)[0]
+        actions = list(action + self.noise.sample())  # add some noise for exploration
+        actions = np.maximum(actions, self.action_low)
+        actions = np.minimum(actions, self.action_high)
+        return actions
+    
     def act_best(self, state):
         """Returns actions for given state(s) as per current policy."""
         state = np.reshape(state, [-1, self.state_size])
@@ -133,7 +146,7 @@ class DDPG():
 
         # Train actor model (local)
         action_gradients = np.reshape(self.critic_local.get_action_gradients([states, actions, 0]), (-1, self.action_size))
-        self.actor_local.train_fn([states, action_gradients, 1])  # custom training function
+        self.loss = self.actor_local.train_fn([states, action_gradients, 1])  # custom training function
         
         # Soft-update target models
         self.soft_update(self.critic_local.model, self.critic_target.model, self.tau)
