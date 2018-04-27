@@ -40,7 +40,7 @@ class Task():
     
         #reward = -min(norm**2, 100)
         reward = -(min(norm, 20)/20)*0.2
-        reward -= min(z_norm, 20)/20*5
+        reward -= min(z_norm, 100)/20*5
             
         reward -= (min(abs(self.sim.v[0]),20)/20)*0.2
         reward -= (min(abs(self.sim.v[1]),20)/20)*0.2
@@ -50,7 +50,7 @@ class Task():
         reward -= (min(abs(self.sim.angular_v[1]),20)/20)*0.5
         #reward -= (min(abs(self.sim.angular_v[2]),20)/20)*0.2 # Ignore rotation around z
         
-        norm_xy_ang= np.linalg.norm([self.sim.pose[3:4]])
+        #norm_xy_ang= np.linalg.norm([self.sim.pose[3:4]])
         #reward = -(min(norm_xy_ang, m.pi)/m.pi)*5.
         
         #reward = np.tanh(0.01*(reward))
@@ -91,8 +91,8 @@ class Task():
             pose_all.append(pose)
         
         # Stop if high above
-        #if self.sim.pose[2] > self.target_pos[2]*2:
-        #    done = True
+        if self.sim.pose[2] > self.target_pos[2]*2:
+            done = True
 
         # Stop when time runs out
         if self.sim.time >= self.runtime:
