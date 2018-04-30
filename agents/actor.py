@@ -31,24 +31,27 @@ class Actor:
         # Define input layer (states)
         states = layers.Input(shape=(self.state_size,), name='states')
 
+        # Scale [0, 1] output for each action dimension to proper range
+        states_scaled = layers.Lambda(lambda x: (x / 40), name='states_scaled')(states)
+        
         net = layers.Dense(units=128, 
                            kernel_initializer='random_uniform', 
                            bias_initializer='random_uniform', #initializers.Constant(value=0.5),
                            activation='relu', 
-                           kernel_regularizer=regularizers.l2(0.01))(states)
-        net = layers.BatchNormalization()(net)
+                           kernel_regularizer=regularizers.l2(0.01))(states_scaled)
+        #net = layers.BatchNormalization()(net)
         net = layers.Dense(units=256, 
                            kernel_initializer='random_uniform', 
                            bias_initializer='random_uniform', #initializers.Constant(value=0.5),
                            activation='relu', 
                            kernel_regularizer=regularizers.l2(0.01))(net)
-        net = layers.BatchNormalization()(net)
+        #net = layers.BatchNormalization()(net)
         net = layers.Dense(units=128, 
                            kernel_initializer='random_uniform', 
                            bias_initializer='random_uniform', #initializers.Constant(value=0.5),
                            activation='relu', 
                            kernel_regularizer=regularizers.l2(0.01))(net)
-        net = layers.BatchNormalization()(net)
+        #net = layers.BatchNormalization()(net)
         
         # Add final output layer with sigmoid activation
         raw_actions = layers.Dense(units=self.action_size, 

@@ -17,7 +17,7 @@ class Task():
         """
         # Simulation 
         self.sim = PhysicsSim(init_pose, init_velocities, init_angle_velocities, runtime) 
-        self.action_repeat = 3
+        self.action_repeat = 5
 
         self.state_size = self.action_repeat * len(self.sim.pose)
         self.action_low = 0
@@ -33,14 +33,67 @@ class Task():
     def get_reward(self):
         """Uses current pose of sim to return reward."""
         
+        
+        def sigmoid(x):
+            import math
+            return 1 / (1 + math.exp(-x))
+
+        reward = sigmoid(np.linalg.norm(self.sim.pose[:3] - self.target_pos[:3]))
+        reward = 1+(0.5 - sigmoid(reward))
+        return reward
+        
         norm= np.linalg.norm([self.sim.pose[:3] - self.target_pos])
         z_norm= np.linalg.norm([self.sim.pose[2] - self.target_pos[2]])
         #reward = np.tanh(1 - 0.004*(norm))
         #return reward
     
         #reward = -min(norm**2, 100)
-        reward = -(min(norm, 20)/20)*0.2
-        reward -= min(z_norm, 100)/20*5
+        reward = -(min(norm-2., 20)/20)*0.2
+        reward -= min(z_norm-2., 100)/20*5
+            
+        reward -= (min(abs(self.sim.v[0]),20)/20)*0.2
+        reward -= (min(abs(self.sim.v[1]),20)/20)*0.2
+        reward -= (min(abs(self.sim.v[2]),20)/20)*0.2
+        
+        reward -= (min(abs(self.sim.angular_v[0]),20)/20)*0.5
+        reward -= (min(abs(self.sim.angular_v[1]),20)/20)*0.5
+        return reward
+        
+        norm= np.linalg.norm([self.sim.pose[:3] - self.target_pos])
+        #reward = -min(norm**2, 100)
+        reward = -norm
+        if self.sim.pose[2] < self.target_pos[2]*0.5:
+            reward -= 3*norm
+            
+        if norm < 3:
+            reward += (1.-norm)*10
+            
+        #reward = -min(abs(self.target_pos[2] - self.sim.pose[2]), 20.0)
+        #if self.sim.pose[2] >= self.target_pos[2]-1.: reward+= 25
+        #if self.sim.pose[2] >= self.target_pos[2]+1.: reward-= 25
+        #if self.sim.pose[2] <= 0.1: reward-= 1000
+        #if abs(self.sim.v[0]) < 0.2: reward+= 10
+        #if abs(self.sim.v[1]) < 0.2: reward+= 10
+        if abs(self.sim.v[2]) < 0.2: reward+= abs(self.sim.v[2])*10
+        reward-= abs(self.sim.v[0])**2
+        reward-= abs(self.sim.v[1])**2
+        reward-= abs(self.sim.v[2])**2
+        #if abs(self.sim.angular_v[0]) < 0.2: reward+= 10
+        #if abs(self.sim.angular_v[1]) < 0.2: reward+= 10
+        #if abs(self.sim.angular_v[2]) < 0.2: reward+= 10
+        #reward += self.sim.time*50
+        #if self.sim.time >= self.runtime:
+        #    reward +=5000
+        return reward
+    
+        norm= np.linalg.norm([self.sim.pose[:3] - self.target_pos])
+        z_norm= np.linalg.norm([self.sim.pose[2] - self.target_pos[2]])
+        #reward = np.tanh(1 - 0.004*(norm))
+        #return reward
+    
+        #reward = -min(norm**2, 100)
+        reward = -(min(norm-2., 20)/20)*0.2
+        reward -= min(z_norm-2., 100)/20*5
             
         reward -= (min(abs(self.sim.v[0]),20)/20)*0.2
         reward -= (min(abs(self.sim.v[1]),20)/20)*0.2

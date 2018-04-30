@@ -25,44 +25,51 @@ class Critic:
         # Define input layers
         states = layers.Input(shape=(self.state_size,), name='states')
         actions = layers.Input(shape=(self.action_size,), name='actions')
-
+            
+        # Scale [0, 1] output for each action dimension to proper range
+        states_scaled = layers.Lambda(lambda x: (x / 40), name='states_scaled')(states)
+                                      
         # Add hidden layer(s) for state pathway
         net_states = layers.Dense(units=64, 
                                   kernel_initializer='uniform', 
                                    bias_initializer='random_uniform',
                                   activation='relu', 
-                                  kernel_regularizer=regularizers.l2(0.01))(states)
+                                  kernel_regularizer=regularizers.l2(0.01))(states_scaled)
         net_states = layers.BatchNormalization()(net_states)
         net_states = layers.Dense(units=128, 
                                   kernel_initializer='uniform', 
                                    bias_initializer='random_uniform',
                                   activation='relu', 
                                   kernel_regularizer=regularizers.l2(0.01))(net_states)
-        net_states = layers.BatchNormalization()(net_states)
-        net_states = layers.Dense(units=64, 
-                                  kernel_initializer='uniform', 
-                                   bias_initializer='random_uniform',
-                                  activation='relu', 
-                                  kernel_regularizer=regularizers.l2(0.01))(net_states)
+        #net_states = layers.BatchNormalization()(net_states)
+        #net_states = layers.Dense(units=64, 
+        #                          kernel_initializer='uniform', 
+        #                           bias_initializer='random_uniform',
+        #                          activation='relu', 
+        #                          kernel_regularizer=regularizers.l2(0.01))(net_states)
+        
+        # Scale [0, 1] output for each action dimension to proper range
+        actions_scaled = layers.Lambda(lambda x: ((x - 0) / 900),
+                                name='actions_scaled')(actions)
         
         # Add hidden layer(s) for action pathway
         net_actions = layers.Dense(units=64, 
                                    kernel_initializer='uniform', 
                                    bias_initializer='random_uniform', 
                                    activation='relu', 
-                                   kernel_regularizer=regularizers.l2(0.01))(actions)
+                                   kernel_regularizer=regularizers.l2(0.01))(actions_scaled)
         net_actions = layers.BatchNormalization()(net_actions)
         net_actions = layers.Dense(units=128,  
                                    kernel_initializer='uniform', 
                                    bias_initializer='random_uniform',
                                    activation='relu', 
                                    kernel_regularizer=regularizers.l2(0.01))(net_actions)
-        net_actions = layers.BatchNormalization()(net_actions)
-        net_actions = layers.Dense(units=64,  
-                                   kernel_initializer='uniform',
-                                   bias_initializer='random_uniform', 
-                                   activation='relu', 
-                                   kernel_regularizer=regularizers.l2(0.01))(net_actions)
+        #net_actions = layers.BatchNormalization()(net_actions)
+        #net_actions = layers.Dense(units=64,  
+        #                           kernel_initializer='uniform',
+        #                           bias_initializer='random_uniform', 
+        #                           activation='relu', 
+        #                           kernel_regularizer=regularizers.l2(0.01))(net_actions)
 
         # Try different layer sizes, activations, add batch normalization, regularizers, etc.
 

@@ -26,13 +26,13 @@ class DDPG():
         self.lr_actor  = lr_actor 
         
         # Actor (Policy) Model
-        self.actor_local = Actor(self.state_size, self.action_size, self.action_low, self.action_high, self.lr_actor)
-        self.actor_target = Actor(self.state_size, self.action_size, self.action_low, self.action_high, self.lr_actor)
-        self.actor_best = Actor(self.state_size, self.action_size, self.action_low, self.action_high, self.lr_actor)
+        self.actor_local = Actor(self.state_size, self.action_size, self.action_low, self.action_high, self.lr_actor, lr_decay=0)
+        self.actor_target = Actor(self.state_size, self.action_size, self.action_low, self.action_high, self.lr_actor, lr_decay=0)
+        self.actor_best = Actor(self.state_size, self.action_size, self.action_low, self.action_high, self.lr_actor, lr_decay=0)
 
         # Critic (Value) Model
-        self.critic_local = Critic(self.state_size, self.action_size, self.lr_critic)
-        self.critic_target = Critic(self.state_size, self.action_size, self.lr_critic)
+        self.critic_local = Critic(self.state_size, self.action_size, self.lr_critic, lr_decay=0)
+        self.critic_target = Critic(self.state_size, self.action_size, self.lr_critic, lr_decay=0)
 
         self.actor_best_score = -np.inf
         
