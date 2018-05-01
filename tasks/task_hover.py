@@ -39,75 +39,9 @@ class Task():
             return 1 / (1 + math.exp(-x))
 
         reward = sigmoid(np.linalg.norm(self.sim.pose[:3] - self.target_pos[:3]))
-        reward = 1+(0.5 - sigmoid(reward))
+        reward = (0.5 - sigmoid(reward))
         return reward
         
-        norm= np.linalg.norm([self.sim.pose[:3] - self.target_pos])
-        z_norm= np.linalg.norm([self.sim.pose[2] - self.target_pos[2]])
-        #reward = np.tanh(1 - 0.004*(norm))
-        #return reward
-    
-        #reward = -min(norm**2, 100)
-        reward = -(min(norm-2., 20)/20)*0.2
-        reward -= min(z_norm-2., 100)/20*5
-            
-        reward -= (min(abs(self.sim.v[0]),20)/20)*0.2
-        reward -= (min(abs(self.sim.v[1]),20)/20)*0.2
-        reward -= (min(abs(self.sim.v[2]),20)/20)*0.2
-        
-        reward -= (min(abs(self.sim.angular_v[0]),20)/20)*0.5
-        reward -= (min(abs(self.sim.angular_v[1]),20)/20)*0.5
-        return reward
-        
-        norm= np.linalg.norm([self.sim.pose[:3] - self.target_pos])
-        #reward = -min(norm**2, 100)
-        reward = -norm
-        if self.sim.pose[2] < self.target_pos[2]*0.5:
-            reward -= 3*norm
-            
-        if norm < 3:
-            reward += (1.-norm)*10
-            
-        #reward = -min(abs(self.target_pos[2] - self.sim.pose[2]), 20.0)
-        #if self.sim.pose[2] >= self.target_pos[2]-1.: reward+= 25
-        #if self.sim.pose[2] >= self.target_pos[2]+1.: reward-= 25
-        #if self.sim.pose[2] <= 0.1: reward-= 1000
-        #if abs(self.sim.v[0]) < 0.2: reward+= 10
-        #if abs(self.sim.v[1]) < 0.2: reward+= 10
-        if abs(self.sim.v[2]) < 0.2: reward+= abs(self.sim.v[2])*10
-        reward-= abs(self.sim.v[0])**2
-        reward-= abs(self.sim.v[1])**2
-        reward-= abs(self.sim.v[2])**2
-        #if abs(self.sim.angular_v[0]) < 0.2: reward+= 10
-        #if abs(self.sim.angular_v[1]) < 0.2: reward+= 10
-        #if abs(self.sim.angular_v[2]) < 0.2: reward+= 10
-        #reward += self.sim.time*50
-        #if self.sim.time >= self.runtime:
-        #    reward +=5000
-        return reward
-    
-        norm= np.linalg.norm([self.sim.pose[:3] - self.target_pos])
-        z_norm= np.linalg.norm([self.sim.pose[2] - self.target_pos[2]])
-        #reward = np.tanh(1 - 0.004*(norm))
-        #return reward
-    
-        #reward = -min(norm**2, 100)
-        reward = -(min(norm-2., 20)/20)*0.2
-        reward -= min(z_norm-2., 100)/20*5
-            
-        reward -= (min(abs(self.sim.v[0]),20)/20)*0.2
-        reward -= (min(abs(self.sim.v[1]),20)/20)*0.2
-        reward -= (min(abs(self.sim.v[2]),20)/20)*0.2
-        
-        reward -= (min(abs(self.sim.angular_v[0]),20)/20)*0.5
-        reward -= (min(abs(self.sim.angular_v[1]),20)/20)*0.5
-        #reward -= (min(abs(self.sim.angular_v[2]),20)/20)*0.2 # Ignore rotation around z
-        
-        #norm_xy_ang= np.linalg.norm([self.sim.pose[3:4]])
-        #reward = -(min(norm_xy_ang, m.pi)/m.pi)*5.
-        
-        #reward = np.tanh(0.01*(reward))
-        return reward
 
     def step(self, actions):
         """Uses action to obtain next state, reward, done."""
@@ -131,21 +65,15 @@ class Task():
             
             # Change pose x,y,z to target error
             pose = self.sim.pose[:]*1.
-            pose[:3] -= self.target_pos
             
-            # Change angles to center around 0
-            if   pose[3] >  m.pi: pose[3] -= 2.*m.pi
-            elif pose[3] < -m.pi: pose[3] += 2.*m.pi
-            if   pose[4] >  m.pi: pose[4] -= 2.*m.pi
-            elif pose[4] < -m.pi: pose[4] += 2.*m.pi
-            if   pose[5] >  m.pi: pose[5] -= 2.*m.pi
-            elif pose[5] < -m.pi: pose[5] += 2.*m.pi
+            pose[:3] -= self.target_pos
+            pose[3:]  = self.sim.v
             
             pose_all.append(pose)
         
         # Stop if high above
-        if self.sim.pose[2] > self.target_pos[2]*2:
-            done = True
+        #if self.sim.pose[2] > self.target_pos[2]*2:
+        #    done = True
 
         # Stop when time runs out
         if self.sim.time >= self.runtime:
@@ -166,6 +94,7 @@ class Task():
                 
         reset_pose = self.sim.pose[:]*1.
         reset_pose[:3] -= self.target_pos
+        reset_pose[3:] -= self.sim.v
         state = np.concatenate([reset_pose] * self.action_repeat) 
         
         return state
