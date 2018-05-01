@@ -17,9 +17,9 @@ class Task():
         """
         # Simulation 
         self.sim = PhysicsSim(init_pose, init_velocities, init_angle_velocities, runtime) 
-        self.action_repeat = 5
+        self.action_repeat = 3
 
-        self.state_size = self.action_repeat * len(self.sim.pose)
+        self.state_size = self.action_repeat * (3 + 3 + 3)
         self.action_low = 0
         self.action_high = 900
         self.action_delta_abs = 2
@@ -38,8 +38,11 @@ class Task():
             import math
             return 1 / (1 + math.exp(-x))
 
-        reward = sigmoid(np.linalg.norm(self.sim.pose[:3] - self.target_pos[:3]))
-        reward = 1+(0.5 - sigmoid(reward))
+        reward  = sigmoid(np.linalg.norm(self.sim.pose[:3] - self.target_pos[:3]))
+        
+        #reward = (0.5 - reward)
+        reward = (0.5 - sigmoid(reward))
+        #reward = np.tanh(-reward)
         return reward
         
         norm= np.linalg.norm([self.sim.pose[:3] - self.target_pos])
@@ -132,18 +135,11 @@ class Task():
             # Change pose x,y,z to target error
             pose = self.sim.pose[:]*1.
             pose[:3] -= self.target_pos
-            
-            # Change angles to center around 0
-            if   pose[3] >  m.pi: pose[3] -= 2.*m.pi
-            elif pose[3] < -m.pi: pose[3] += 2.*m.pi
-            if   pose[4] >  m.pi: pose[4] -= 2.*m.pi
-            elif pose[4] < -m.pi: pose[4] += 2.*m.pi
-            if   pose[5] >  m.pi: pose[5] -= 2.*m.pi
-            elif pose[5] < -m.pi: pose[5] += 2.*m.pi
+            pose = np.append(pose, self.sim.v)
             
             pose_all.append(pose)
         
-        # Stop if high above
+        # Stop if high above target
         if self.sim.pose[2] > self.target_pos[2]*2:
             done = True
 
@@ -166,6 +162,7 @@ class Task():
                 
         reset_pose = self.sim.pose[:]*1.
         reset_pose[:3] -= self.target_pos
+        reset_pose = np.append(reset_pose, self.sim.v)
         state = np.concatenate([reset_pose] * self.action_repeat) 
         
         return state
